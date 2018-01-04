@@ -1,0 +1,116 @@
+/*
+#define MOSFET1  9
+#define MOSFET2  10
+#define EnablePower 2  // HV power on switch
+#define batteryVoltage 0  // Ad0
+#define heatSink 1  // Ad1
+#define batteryGoodInd 12 
+#define fanOnInd 11
+#define HVON  13 // high voltage on blinks
+
+int x = 0;  int y = 0; int z = 0;
+
+void setup() {                
+
+  pinMode(MOSFET1, OUTPUT); // MOSFET 1
+  pinMode(MOSFET2, OUTPUT);  // MOSFET 2
+
+  pinMode(EnablePower, INPUT); // N.O. switch
+  digitalWrite(EnablePower, HIGH); // pull up enabled
+  
+  pinMode(HVON, OUTPUT);
+  digitalWrite(HVON, LOW);
+  
+  pinMode(batteryGoodInd, OUTPUT);
+  digitalWrite(batteryGoodInd, LOW);
+
+  pinMode(fanOnInd, OUTPUT);
+  digitalWrite(fanOnInd, LOW);
+
+}
+
+void loop() {
+  y = analogRead(batteryVoltage);
+  if (y > 150) digitalWrite(batteryGoodInd, LOW);  
+// battery LED off
+     else digitalWrite(batteryGoodInd, HIGH);  
+// battery too low LED on
+     
+     
+  if (analogRead(heatSink) > 500) digitalWrite(fanOnInd, HIGH); 
+// cooling fan on
+    else digitalWrite(fanOnInd, LOW); 
+
+// cooling fan off  
+     
+  if ((digitalRead(EnablePower) == 0) && (y > 150))  {   
+// check for closed enable switch, battery state
+    SoftStart();  // bring power up slowly
+    while ((digitalRead(EnablePower) == 0) && (y > 150))   {
+      digitalWrite(MOSFET1, HIGH);   // MOSFET1 on
+      delayMicroseconds(360);
+      delay(8);  // wait for 8.3 mS
+      digitalWrite(MOSFET1, LOW);  // MOSFET1 off
+
+      digitalWrite(MOSFET2, HIGH);   // MOSFET2 on
+      delayMicroseconds(360);
+      delay(8);  // wait for 8.3 mS
+      digitalWrite(MOSFET2, LOW);  // MOSFET2 off
+
+      x++;
+      if (x == 20) { // flash HVON LED
+        toggle(HVON);
+        y = analogRead(0); 
+        x=0;
+        if (analogRead(heatSink) > 500) digitalWrite(fanOnInd, HIGH); 
+// cooling fan on
+           else digitalWrite(fanOnInd, LOW);
+// cooling fan off 
+      } // end 2nd if
+
+    } // end while
+
+  } // 
+
+}  // end loop
+
+
+void toggle(int pinNum) {  
+// toggle the state on a pin
+
+  int pinState = digitalRead(pinNum);
+  pinState = !pinState;
+  digitalWrite(pinNum, pinState); 
+}
+
+//SoftStart allows power to come up slowly to prevent excessive surges
+// time is about 2 seconds
+
+
+void SoftStart(void)   {
+  int y = 2;
+  int x = 0;
+  int z = 6;
+  while (y < 8)   {
+
+    digitalWrite(MOSFET1, HIGH);   // MOSFET1 on
+    delayMicroseconds(360);
+    delay(y);  // wait for 8.3 mS
+    digitalWrite(MOSFET1, LOW);  // MOSFET1 off
+    delay(z);
+
+    digitalWrite(MOSFET2, HIGH);   // MOSFET2 on
+    delayMicroseconds(360);
+    delay(y);  // wait for 8.3 mS
+    digitalWrite(MOSFET2, LOW);  // MOSFET2 off
+    delay(z);
+
+    x++;
+    if (x == 30) { 
+      y = y + 2;
+      z = z - 2; 
+      x=0;
+
+    }
+  }
+}
